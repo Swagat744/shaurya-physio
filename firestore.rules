@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── APPOINTMENTS ──────────────────────────────────────
+    // Public can create appointments (book via the website)
+    // Only authenticated users can read or update
+    match /appointments/{docId} {
+      allow create: if true; // Public booking
+      allow read, update: if request.auth != null;
+      allow delete: if false; // No deletion allowed
+    }
+
+    // ── PATIENTS ──────────────────────────────────────────
+    // Only authenticated staff can create, read, or update patient records
+    match /patients/{docId} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // ── TREATMENTS ────────────────────────────────────────
+    // Only authenticated staff can manage treatment records
+    match /treatments/{docId} {
+      allow read, create, update: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // Deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
