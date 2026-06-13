@@ -155,3 +155,158 @@ export async function getAllTreatments(): Promise<TreatmentRecord[]> {
 export async function updateTreatmentRecord(id: string, data: Partial<TreatmentRecord>) {
   return updateDoc(doc(db, "treatments", id), { ...data, updatedAt: serverTimestamp() });
 }
+
+// ── POSTS (Doctor Updates) ────────────────────────────────
+
+export type PostType = "blog" | "note" | "quote" | "exercise" | "banner" | "camp";
+
+export interface Post {
+  id?: string;
+  title: string;
+  content: string;
+  type: PostType;
+  imageUrl?: string;
+  authorName: string;
+  createdAt?: Timestamp;
+}
+
+export async function createPost(data: Omit<Post, "id" | "createdAt">) {
+  // Strip undefined fields — Firestore does not accept undefined values
+  const clean: Record<string, unknown> = { createdAt: serverTimestamp() };
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  return addDoc(collection(db, "posts"), clean);
+}
+
+export async function getPosts(): Promise<Post[]> {
+  const snap = await getDocs(collection(db, "posts"));
+  const posts = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+  // Sort client-side to avoid needing a Firestore index
+  return posts.sort((a, b) => {
+    const aTime = (a.createdAt as unknown as { seconds: number })?.seconds ?? 0;
+    const bTime = (b.createdAt as unknown as { seconds: number })?.seconds ?? 0;
+    return bTime - aTime;
+  });
+}
+
+export async function deletePost(id: string) {
+  const { deleteDoc } = await import("firebase/firestore");
+  return deleteDoc(doc(db, "posts", id));
+}
+
+export async function updatePost(id: string, data: Partial<Omit<Post, "id" | "createdAt">>) {
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) clean[k] = v;
+  }
+  return updateDoc(doc(db, "posts", id), clean);
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────
+
+export interface Notification {
+  id?: string;
+  userId: string;
+  postId: string;
+  postTitle: string;
+  postType: PostType;
+  read: boolean;
+  createdAt?: Timestamp;
+}
+
+export async function createNotificationsForAllUsers(postId: string, postTitle: string, postType: PostType) {
+  try {
+    const snap = await getDocs(collection(db, "userProfiles"));
+    const batch: Promise<unknown>[] = [];
+    snap.docs.forEach((d) => {
+      batch.push(
+        addDoc(collection(db, "notifications"), {
+          userId: d.id,
+          postId,
+          postTitle,
+          postType,
+          read: false,
+          createdAt: serverTimestamp(),
+        })
+      );
+    });
+    await Promise.all(batch);
+  } catch {
+    // Non-blocking — post is published even if notifications fail
+    console.warn("Notifications skipped: no viewers registered yet or permission denied.");
+  }
+}
+
+export async function getNotificationsForUser(userId: string): Promise<Notification[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "notifications"),
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Notification));
+}
+
+export async function markNotificationRead(id: string) {
+  return updateDoc(doc(db, "notifications", id), { read: true });
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  const snap = await getDocs(
+    query(collection(db, "notifications"), where("userId", "==", userId), where("read", "==", false))
+  );
+  await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { read: true })));
+}
+
+// ── USER PROFILES ─────────────────────────────────────────
+
+export interface UserProfile {
+  id?: string;
+  email: string;
+  displayName: string;
+  createdAt?: Timestamp;
+}
+
+export async function upsertUserProfile(uid: string, data: Omit<UserProfile, "id" | "createdAt">) {
+  const ref = doc(db, "userProfiles", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    await addDoc(collection(db, "userProfiles"), { ...data, createdAt: serverTimestamp() });
+    // Re-set with uid as doc id
+    const { setDoc } = await import("firebase/firestore");
+    await setDoc(ref, { ...data, createdAt: serverTimestamp() });
+  }
+}
+
+// ── CLINIC SETTINGS ───────────────────────────────────────
+
+export interface ClinicTimings {
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+}
+
+export interface ClinicSettings {
+  timings: ClinicTimings;
+}
+
+export async function getClinicSettings(): Promise<ClinicSettings | null> {
+  try {
+    const snap = await getDoc(doc(db, "clinicSettings", "main"));
+    if (snap.exists()) return snap.data() as ClinicSettings;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveClinicSettings(timings: ClinicTimings) {
+  const { setDoc } = await import("firebase/firestore");
+  return setDoc(doc(db, "clinicSettings", "main"), { timings });
+}

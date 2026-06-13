@@ -1,6 +1,32 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getClinicSettings, ClinicTimings } from "@/lib/firestore";
+
+const DEFAULT_TIMINGS: ClinicTimings = {
+  monday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  tuesday:   "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  wednesday: "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  thursday:  "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  friday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  saturday:  "9:00 AM – 2:00 PM",
+  sunday:    "Closed",
+};
 
 export default function Footer() {
+  const [timings, setTimings] = useState<ClinicTimings>(DEFAULT_TIMINGS);
+
+  useEffect(() => {
+    getClinicSettings().then((s) => {
+      if (s?.timings) setTimings(s.timings);
+    }).catch(() => {});
+  }, []);
+
+  // Build a compact summary e.g. "Mon–Sat: 9AM–1PM, 5PM–8PM · Sun: Closed"
+  const openDays = Object.entries(timings).filter(([, v]) => v !== "Closed");
+  const timingSummary = timings.monday !== "Closed" ? timings.monday : timings.tuesday;
+
   return (
     <footer className="bg-slate-900 text-slate-400">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -28,17 +54,15 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               {[
-                { href: "/about", label: "About Doctor" },
+                { href: "/about",    label: "About Doctor" },
                 { href: "/services", label: "Services" },
-                { href: "/book", label: "Book Appointment" },
-                { href: "/contact", label: "Contact" },
-                { href: "/login", label: "Staff Login" },
+                { href: "/updates",  label: "Updates" },
+                { href: "/book",     label: "Book Appointment" },
+                { href: "/contact",  label: "Contact" },
+                { href: "/login",    label: "Login" },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="hover:text-primary-400 transition-colors duration-150"
-                  >
+                  <Link href={link.href} className="hover:text-primary-400 transition-colors duration-150">
                     {link.label}
                   </Link>
                 </li>
@@ -60,14 +84,13 @@ export default function Footer() {
                 New Panvel (West), 410206
               </p>
               <p>
-                <a
-                  href="tel:+919673855138"
-                  className="hover:text-primary-400 transition-colors"
-                >
+                <a href="tel:+919673855138" className="hover:text-primary-400 transition-colors">
                   +91 96738 55138
                 </a>
               </p>
-              <p className="text-slate-500 text-xs">Timings: 5:00 PM to 9:00 PM</p>
+              <div className="text-xs text-slate-500 space-y-0.5">
+                {<p className="text-xs text-slate-500">Timings: {timingSummary}</p>}
+              </div>
             </address>
           </div>
         </div>
@@ -76,9 +99,7 @@ export default function Footer() {
           <p className="text-xs text-slate-600">
             &copy; {new Date().getFullYear()} Shaurya Physiotherapy Clinic. All rights reserved.
           </p>
-          <p className="text-xs text-slate-600">
-            Designed for professional medical use
-          </p>
+          <p className="text-xs text-slate-600">Designed for professional medical use</p>
         </div>
       </div>
     </footer>

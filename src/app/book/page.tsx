@@ -137,7 +137,6 @@ export default function BookPage() {
             {/* Info strip */}
             <div className="card mb-8 bg-primary-50 border-primary-200">
               <p className="text-sm text-primary-800 leading-relaxed">
-                <strong>Clinic Timings:</strong> 5:00 PM to 9:00 PM &nbsp;|&nbsp;
                 <strong>Contact:</strong>{" "}
                 <a href="tel:+919673855138" className="underline">+91 96738 55138</a>
                 &nbsp;|&nbsp;

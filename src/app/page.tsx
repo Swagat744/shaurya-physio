@@ -1,6 +1,29 @@
+"use client";
+
 import Link from "next/link";
 import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
+import { useEffect, useState } from "react";
+import { getClinicSettings, ClinicTimings } from "@/lib/firestore";
+
+const clinicImages = [
+  "/img1.jpeg",
+  "/img2.jpeg",
+  "/img3.jpeg",
+  "/img4.jpeg",
+  "/img5.jpeg",
+  "/img6.jpeg",
+];
+
+const DEFAULT_TIMINGS: ClinicTimings = {
+  monday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  tuesday:   "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  wednesday: "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  thursday:  "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  friday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  saturday:  "9:00 AM – 2:00 PM",
+  sunday:    "Closed",
+};
 
 const services = [
   {
@@ -30,13 +53,23 @@ const services = [
 ];
 
 export default function HomePage() {
+  const [timings, setTimings] = useState<ClinicTimings>(DEFAULT_TIMINGS);
+
+  useEffect(() => {
+    getClinicSettings().then((s) => {
+      if (s?.timings) setTimings(s.timings);
+    }).catch(() => {});
+  }, []);
+
+  // Single timing to display — use Monday's or first non-closed day
+  const displayTiming = Object.values(timings).find((v) => v !== "Closed") ?? "Check contact page";
+
   return (
     <>
       <Navbar />
       <main>
         {/* Hero */}
         <section className="relative min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-primary-900 to-slate-800 overflow-hidden">
-          {/* Background grid */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -45,7 +78,6 @@ export default function HomePage() {
               backgroundSize: "60px 60px",
             }}
           />
-          {/* Glow accent */}
           <div className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-primary-500 opacity-10 blur-3xl" />
 
           <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
@@ -75,14 +107,12 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Clinic timings chip */}
+              {/* Clinic timings chip — dynamic */}
               <div className="mt-10 inline-flex items-center gap-3 bg-white/10 border border-white/20 rounded-sm px-4 py-3 fade-up fade-up-4">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
-                <span className="text-sm text-white font-medium">Clinic Hours: 10 AM – 1 PM | 5 PM – 9 PM</span>
+                <span className="text-sm text-white font-medium">Clinic Hours: {displayTiming}</span>
                 <span className="text-slate-400 text-xs hidden sm:block">|</span>
-                <span className="text-slate-300 text-xs hidden sm:block">
-                  +91 96738 55138
-                </span>
+                <span className="text-slate-300 text-xs hidden sm:block">+91 96738 55138</span>
               </div>
             </div>
           </div>
@@ -105,6 +135,36 @@ export default function HomePage() {
           </div>
         </section>
 
+            {/* Clinic Gallery */}
+        <section className="py-10 bg-slate-50 overflow-hidden">
+          <div className="max-w-6xl mx-auto px-4 mb-8 text-center">
+            <span className="section-label">
+              Clinic Gallery
+            </span>
+
+            <div className="divider mx-auto" />
+
+            <h2 className="section-title">
+              Modern Care Environment
+            </h2>
+          </div>
+
+          <div className="relative">
+            <div className="flex gallery-track">
+              {[...clinicImages, ...clinicImages].map((img, index) => (
+                <div
+                  key={index}
+                  className="gallery-item flex-shrink-0 w-[420px] h-[260px] mx-4 rounded-2xl overflow-hidden bg-white">
+                  <img
+                      src={img}
+                      alt={`Clinic ${index}`}
+                      className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+                    />
+                </div>
+              ))}
+            </div>
+          </div>
+      </section>
         {/* Introduction */}
         <section className="py-20 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -129,21 +189,15 @@ export default function HomePage() {
                   — our clinic integrates the best of contemporary physiotherapy practice.
                 </p>
                 <div className="mt-8 flex gap-4">
-                  <Link href="/services" className="btn-primary">
-                    Our Services
-                  </Link>
-                  <Link href="/contact" className="btn-outline">
-                    Get Directions
-                  </Link>
+                  <Link href="/services" className="btn-primary">Our Services</Link>
+                  <Link href="/contact" className="btn-outline">Get Directions</Link>
                 </div>
               </div>
 
-              {/* Info card */}
+              {/* Info cards */}
               <div className="space-y-4">
                 <div className="card border-l-4 border-l-primary-500">
-                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
-                    Clinic Location
-                  </h3>
+                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">Clinic Location</h3>
                   <p className="text-sm text-slate-600 leading-relaxed">
                     Patil Complex, Shop No-5, Sector-9,
                     <br />
@@ -151,20 +205,12 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="card border-l-4 border-l-primary-400">
-                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
-                    Consultation Hours
-                  </h3>
-                  <p className="text-sm text-slate-600">Monday to Saturday</p>
-                  <p className="text-sm font-medium text-primary-700 mt-1">5:00 PM to 9:00 PM</p>
+                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">Consultation Hours</h3>
+                  <p className="text-sm font-medium text-primary-700">{displayTiming}</p>
                 </div>
                 <div className="card border-l-4 border-l-primary-300">
-                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
-                    Contact
-                  </h3>
-                  <a
-                    href="tel:+919673855138"
-                    className="text-sm text-primary-700 font-medium hover:text-primary-800"
-                  >
+                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">Contact</h3>
+                  <a href="tel:+919673855138" className="text-sm text-primary-700 font-medium hover:text-primary-800">
                     +91 96738 55138
                   </a>
                 </div>
@@ -199,9 +245,7 @@ export default function HomePage() {
                     to every patient interaction.
                   </p>
                   <div className="mt-6">
-                    <Link href="/about" className="btn-primary text-xs px-5 py-2">
-                      Full Profile
-                    </Link>
+                    <Link href="/about" className="btn-primary text-xs px-5 py-2">Full Profile</Link>
                   </div>
                 </div>
               </div>
@@ -218,11 +262,8 @@ export default function HomePage() {
               <h2 className="section-title">Comprehensive Care Across Specialities</h2>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((s, i) => (
-                <div
-                  key={s.title}
-                  className="card hover:border-primary-200 hover:shadow-md transition-all duration-200 group"
-                >
+              {services.map((s) => (
+                <div key={s.title} className="card hover:border-primary-200 hover:shadow-md transition-all duration-200 group">
                   <div className="w-8 h-0.5 bg-primary-500 mb-4" />
                   <h3 className="font-display text-lg font-semibold text-slate-900 group-hover:text-primary-700 transition-colors">
                     {s.title}
@@ -232,9 +273,7 @@ export default function HomePage() {
               ))}
             </div>
             <div className="text-center mt-10">
-              <Link href="/services" className="btn-outline">
-                View All Services
-              </Link>
+              <Link href="/services" className="btn-outline">View All Services</Link>
             </div>
           </div>
         </section>
@@ -242,24 +281,16 @@ export default function HomePage() {
         {/* CTA */}
         <section className="py-16 bg-primary-700">
           <div className="max-w-2xl mx-auto px-4 text-center">
-            <h2 className="font-display text-4xl font-semibold text-white">
-              Begin Your Recovery Today
-            </h2>
+            <h2 className="font-display text-4xl font-semibold text-white">Begin Your Recovery Today</h2>
             <p className="mt-4 text-primary-200 text-base leading-relaxed">
               Schedule a consultation with Dr. Nivedita Pingale and take the first step
               toward pain-free movement.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Link
-                href="/book"
-                className="bg-white text-primary-700 px-8 py-3 rounded-sm font-medium text-sm tracking-wide hover:bg-primary-50 transition-colors duration-200"
-              >
+              <Link href="/book" className="bg-white text-primary-700 px-8 py-3 rounded-sm font-medium text-sm tracking-wide hover:bg-primary-50 transition-colors duration-200">
                 Book Appointment
               </Link>
-              <Link
-                href="/contact"
-                className="border border-primary-300 text-white px-8 py-3 rounded-sm font-medium text-sm tracking-wide hover:bg-primary-800 transition-colors duration-200"
-              >
+              <Link href="/contact" className="border border-primary-300 text-white px-8 py-3 rounded-sm font-medium text-sm tracking-wide hover:bg-primary-800 transition-colors duration-200">
                 Contact Us
               </Link>
             </div>

@@ -5,12 +5,12 @@ import { useForm, useFieldArray } from "react-hook-form";
 import {
   getAllTreatments,
   addTreatmentRecord,
+  updateTreatmentRecord,
   getPatients,
   TreatmentRecord,
   Exercise,
   Patient,
 } from "@/lib/firestore";
-import { format } from "date-fns";
 
 interface TreatmentForm {
   patientId: string;
@@ -24,11 +24,12 @@ interface TreatmentForm {
 }
 
 export default function TreatmentsPage() {
-  const [records, setRecords] = useState<TreatmentRecord[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [records, setRecords]       = useState<TreatmentRecord[]>([]);
+  const [patients, setPatients]     = useState<Patient[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [showForm, setShowForm]     = useState(false);
+  const [editId, setEditId]         = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { register, handleSubmit, control, watch, setValue, formState: { errors }, reset } =
@@ -40,12 +41,9 @@ export default function TreatmentsPage() {
     });
 
   const { fields, append, remove } = useFieldArray({ control, name: "exercises" });
-
   const selectedPatientId = watch("patientId");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   useEffect(() => {
     if (selectedPatientId) {
@@ -65,12 +63,38 @@ export default function TreatmentsPage() {
     }
   }
 
+  function openEdit(rec: TreatmentRecord) {
+    setEditId(rec.id!);
+    reset({
+      patientId:   rec.patientId,
+      patientName: rec.patientName,
+      date:        rec.date,
+      diagnosis:   rec.diagnosis,
+      doctorNotes: rec.doctorNotes,
+      exercises:   rec.exercises || [],
+      precautions: rec.precautions || "",
+      nextVisit:   rec.nextVisit || "",
+    });
+    setShowForm(true);
+    setExpandedId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function resetForm() {
+    reset({ date: new Date().toISOString().split("T")[0], exercises: [] });
+    setShowForm(false);
+    setEditId(null);
+  }
+
   const onSubmit = async (data: TreatmentForm) => {
     setSaving(true);
     try {
-      await addTreatmentRecord(data);
-      reset({ date: new Date().toISOString().split("T")[0], exercises: [] });
-      setShowForm(false);
+      if (editId) {
+        await updateTreatmentRecord(editId, data);
+      } else {
+        await addTreatmentRecord(data);
+      }
+      resetForm();
       fetchData();
     } finally {
       setSaving(false);
@@ -84,23 +108,25 @@ export default function TreatmentsPage() {
           <h1 className="font-display text-3xl font-semibold text-slate-900">Treatment Records</h1>
           <p className="text-slate-500 text-sm mt-1">{records.length} records</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button
+          onClick={() => { if (showForm) { resetForm(); } else { setShowForm(true); setEditId(null); } }}
+          className="btn-primary"
+        >
           {showForm ? "Cancel" : "Add Record"}
         </button>
       </div>
 
-      {/* Treatment Form */}
+      {/* Form */}
       {showForm && (
         <div className="card mb-8">
           <h2 className="font-display text-xl font-semibold text-slate-900 mb-6">
-            New Treatment Record
+            {editId ? "Edit Treatment Record" : "New Treatment Record"}
           </h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Patient</label>
-                <select className="input-field"
-                  {...register("patientId", { required: "Select a patient" })}>
+                <select className="input-field" {...register("patientId", { required: "Select a patient" })}>
                   <option value="">Select patient</option>
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} — {p.phone}</option>
@@ -142,7 +168,6 @@ export default function TreatmentsPage() {
                   + Add Exercise
                 </button>
               </div>
-
               {fields.length === 0 ? (
                 <div className="border border-dashed border-slate-300 rounded-sm py-6 text-center text-slate-400 text-sm">
                   No exercises added. Click &quot;Add Exercise&quot; to build the plan.
@@ -152,11 +177,8 @@ export default function TreatmentsPage() {
                   {fields.map((field, index) => (
                     <div key={field.id} className="bg-slate-50 border border-slate-200 rounded-sm p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-slate-500 uppercase">
-                          Exercise {index + 1}
-                        </span>
-                        <button type="button" onClick={() => remove(index)}
-                          className="text-xs text-red-500 hover:text-red-700">
+                        <span className="text-xs font-semibold text-slate-500 uppercase">Exercise {index + 1}</span>
+                        <button type="button" onClick={() => remove(index)} className="text-xs text-red-500 hover:text-red-700">
                           Remove
                         </button>
                       </div>
@@ -165,14 +187,10 @@ export default function TreatmentsPage() {
                           <input className="input-field" placeholder="Exercise name (e.g. Straight Leg Raise)"
                             {...register(`exercises.${index}.name`, { required: true })} />
                         </div>
-                        <input className="input-field" placeholder="Sets (e.g. 3 sets)"
-                          {...register(`exercises.${index}.sets`)} />
-                        <input className="input-field" placeholder="Reps (e.g. 10 reps)"
-                          {...register(`exercises.${index}.reps`)} />
-                        <input className="input-field" placeholder="Duration (e.g. 30 seconds)"
-                          {...register(`exercises.${index}.duration`)} />
-                        <input className="input-field" placeholder="Instructions / notes"
-                          {...register(`exercises.${index}.instructions`)} />
+                        <input className="input-field" placeholder="Sets (e.g. 3 sets)" {...register(`exercises.${index}.sets`)} />
+                        <input className="input-field" placeholder="Reps (e.g. 10 reps)" {...register(`exercises.${index}.reps`)} />
+                        <input className="input-field" placeholder="Duration (e.g. 30 seconds)" {...register(`exercises.${index}.duration`)} />
+                        <input className="input-field" placeholder="Instructions / notes" {...register(`exercises.${index}.instructions`)} />
                       </div>
                     </div>
                   ))}
@@ -195,11 +213,9 @@ export default function TreatmentsPage() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={() => { setShowForm(false); reset(); }} className="btn-ghost">
-                Cancel
-              </button>
+              <button type="button" onClick={resetForm} className="btn-ghost">Cancel</button>
               <button type="submit" disabled={saving} className="btn-primary">
-                {saving ? "Saving..." : "Save Treatment Record"}
+                {saving ? "Saving..." : editId ? "Update Record" : "Save Treatment Record"}
               </button>
             </div>
           </form>
@@ -219,26 +235,38 @@ export default function TreatmentsPage() {
         <div className="space-y-3">
           {records.map((rec) => (
             <div key={rec.id} className="card">
-              <div
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer"
-                onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id!)}
-              >
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id!)}
+                >
                   <h3 className="font-medium text-slate-900">{rec.patientName}</h3>
                   <div className="mt-0.5 flex flex-wrap gap-3 text-xs text-slate-500">
                     <span>{rec.date}</span>
                     <span className="font-medium text-slate-700">{rec.diagnosis}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   {rec.exercises?.length > 0 && (
                     <span className="text-xs bg-primary-50 text-primary-700 border border-primary-200 px-2 py-0.5 rounded-full">
                       {rec.exercises.length} exercise{rec.exercises.length > 1 ? "s" : ""}
                     </span>
                   )}
+                  {/* Edit button */}
+                  <button
+                    onClick={() => openEdit(rec)}
+                    className="text-slate-400 hover:text-primary-600 transition-colors"
+                    title="Edit record"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                  </button>
                   <svg
-                    className={`w-4 h-4 text-slate-400 transition-transform ${expandedId === rec.id ? "rotate-180" : ""}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id!)}
+                    className={`w-4 h-4 text-slate-400 transition-transform cursor-pointer ${expandedId === rec.id ? "rotate-180" : ""}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -250,7 +278,6 @@ export default function TreatmentsPage() {
                     <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Doctor Notes</p>
                     <p className="text-sm text-slate-700 leading-relaxed">{rec.doctorNotes}</p>
                   </div>
-
                   {rec.exercises?.length > 0 && (
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Exercise Plan</p>
@@ -269,14 +296,12 @@ export default function TreatmentsPage() {
                       </div>
                     </div>
                   )}
-
                   {rec.precautions && (
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Precautions</p>
                       <p className="text-sm text-slate-700">{rec.precautions}</p>
                     </div>
                   )}
-
                   {rec.nextVisit && (
                     <div>
                       <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Next Visit</p>

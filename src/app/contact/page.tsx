@@ -1,17 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Navbar from "@/components/public/Navbar";
 import Footer from "@/components/public/Footer";
 import Link from "next/link";
+import { getClinicSettings, ClinicTimings } from "@/lib/firestore";
 
-export const metadata = {
-  title: "Contact | Shaurya Physiotherapy Clinic",
+const DEFAULT_TIMINGS: ClinicTimings = {
+  monday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  tuesday:   "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  wednesday: "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  thursday:  "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  friday:    "9:00 AM – 1:00 PM, 5:00 PM – 8:00 PM",
+  saturday:  "9:00 AM – 2:00 PM",
+  sunday:    "Closed",
 };
 
+const DAYS = [
+  { key: "monday",    label: "Monday" },
+  { key: "tuesday",   label: "Tuesday" },
+  { key: "wednesday", label: "Wednesday" },
+  { key: "thursday",  label: "Thursday" },
+  { key: "friday",    label: "Friday" },
+  { key: "saturday",  label: "Saturday" },
+  { key: "sunday",    label: "Sunday" },
+] as const;
+
 export default function ContactPage() {
+  const [timings, setTimings] = useState<ClinicTimings>(DEFAULT_TIMINGS);
+
+  useEffect(() => {
+    getClinicSettings().then((s) => {
+      if (s?.timings) setTimings(s.timings);
+    }).catch(() => {});
+  }, []);
+
   return (
     <>
       <Navbar />
       <main className="pt-16">
-        {/* Header */}
         <section className="bg-slate-900 py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <span className="section-label text-primary-300">Get in Touch</span>
@@ -25,15 +52,12 @@ export default function ContactPage() {
 
         <section className="py-16 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-2 gap-12">
-            {/* Contact details */}
             <div>
               <span className="section-label">Clinic Information</span>
               <div className="divider" />
               <div className="space-y-6">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
-                    Address
-                  </h3>
+                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">Address</h3>
                   <address className="not-italic text-slate-600 text-sm leading-relaxed">
                     Patil Complex, Shop No-5,
                     <br />
@@ -44,9 +68,7 @@ export default function ContactPage() {
                 </div>
 
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
-                    Phone
-                  </h3>
+                  <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">Phone</h3>
                   <a
                     href="tel:+919673855138"
                     className="text-primary-700 font-medium text-sm hover:text-primary-800 transition-colors"
@@ -59,8 +81,16 @@ export default function ContactPage() {
                   <h3 className="font-display text-lg font-semibold text-slate-900 mb-2">
                     Clinic Timings
                   </h3>
-                  <p className="text-sm text-slate-600">Monday to Saturday</p>
-                  <p className="text-sm font-semibold text-primary-700 mt-1">5:00 PM – 9:00 PM</p>
+                  <div className="space-y-1.5 mt-2">
+                    {DAYS.map(({ key, label }) => (
+                      <div key={key} className="flex items-start gap-3 text-sm">
+                        <span className="w-24 font-medium text-slate-700 flex-shrink-0">{label}</span>
+                        <span className={timings[key] === "Closed" ? "text-red-500 font-medium" : "text-primary-700 font-semibold"}>
+                          {timings[key]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
@@ -74,7 +104,6 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Map */}
             <div>
               <h3 className="font-display text-lg font-semibold text-slate-900 mb-4">
                 Location Map

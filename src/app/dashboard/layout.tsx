@@ -6,14 +6,19 @@ import { useAuth } from "@/lib/auth-context";
 import DashboardSidebar from "@/components/dashboard/Sidebar";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading) {
+      if (!user) {
+        router.push("/login");
+      } else if (role !== "doctor") {
+        // Logged in but not a doctor — send back to main site
+        router.push("/");
+      }
     }
-  }, [user, loading, router]);
+  }, [user, role, loading, router]);
 
   if (loading) {
     return (
@@ -23,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user) return null;
+  if (!user || role !== "doctor") return null;
 
   return (
     <div className="flex min-h-screen bg-slate-100">

@@ -69,26 +69,53 @@ export default function AboutPage() {
         {/* Hero */}
         <section className="bg-slate-900 py-20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl">
-              <span className="section-label text-primary-300">About the Doctor</span>
-              <div className="divider" />
-              <h1 className="font-display text-5xl font-semibold text-white leading-tight">
-                Dr. Nivedita
-                <br />
-                Shashikant Pingale
-              </h1>
-              <p className="mt-3 text-primary-300 font-sans text-base font-medium">
-                BPTH, MPT — Cardiovascular and Respiratory Physiotherapy
-              </p>
-              <p className="mt-1 text-slate-400 text-sm font-sans">
-                Certified Nutritionist · Certified Mulligan Practitioner ·
-                Internationally Accredited Sports and Nutritional Coach
-              </p>
-              <p className="mt-6 text-slate-300 leading-relaxed font-sans font-light">
-                With over eight years of dedicated clinical practice across premier Mumbai hospitals
-                and her own consultancy, Dr. Nivedita Pingale brings exceptional skill, academic
-                excellence, and a patient-first philosophy to every treatment she delivers.
-              </p>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+              {/* Left Content */}
+              <div>
+                <span className="section-label text-primary-300">
+                  About the Doctor
+                </span>
+
+                <div className="divider" />
+
+                <h1 className="font-display text-5xl font-semibold text-white leading-tight">
+                  Dr. Nivedita
+                  <br />
+                  Shashikant Pingale
+                </h1>
+
+                <p className="mt-3 text-primary-300 font-sans text-base font-medium">
+                  BPTH, MPT — Cardiovascular and Respiratory Physiotherapy
+                </p>
+
+                <p className="mt-1 text-slate-400 text-sm font-sans">
+                  Certified Nutritionist · Certified Mulligan Practitioner ·
+                  Internationally Accredited Sports and Nutritional Coach
+                </p>
+
+                <p className="mt-6 text-slate-300 leading-relaxed font-sans font-light">
+                  With over eight years of dedicated clinical practice across premier
+                  Mumbai hospitals and her own consultancy, Dr. Nivedita Pingale brings
+                  exceptional skill, academic excellence, and a patient-first
+                  philosophy to every treatment she delivers.
+                </p>
+              </div>
+
+              {/* Doctor Image */}
+              <div className="flex justify-center lg:justify-end">
+                <div className="relative w-80 h-80 md:w-96 md:h-96 rounded-full border-2 border-slate-300 overflow-hidden bg-slate-800">
+
+                  {/* Placeholder Image */}
+                  <img
+                    src="/doctor_nivedita.jpeg"
+                    alt="Dr. Nivedita Pingale"
+                    className="w-full h-full object-cover"
+                  />
+
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
