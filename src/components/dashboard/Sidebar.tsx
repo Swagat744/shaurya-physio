@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -9,8 +10,8 @@ const navItems = [
   { href: "/dashboard",              label: "Overview",          icon: GridIcon },
   { href: "/dashboard/patients",     label: "Patients",          icon: UsersIcon },
   { href: "/dashboard/appointments", label: "Appointments",      icon: CalendarIcon },
-  { href: "/dashboard/treatments",   label: "Treatment Records", icon: ClipboardIcon },
-  { href: "/dashboard/posts",        label: "Doctor's Updates",  icon: PenIcon },
+  { href: "/dashboard/treatments",   label: "Treatments",        icon: ClipboardIcon },
+  { href: "/dashboard/posts",        label: "Updates",           icon: PenIcon },
   { href: "/dashboard/settings",     label: "Settings",          icon: SettingsIcon },
 ];
 
@@ -18,6 +19,7 @@ export default function DashboardSidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -25,62 +27,148 @@ export default function DashboardSidebar() {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-slate-900 flex flex-col">
-      <div className="px-6 py-6 border-b border-slate-800">
-        <h1 className="font-display text-lg font-semibold text-white leading-snug">
-          Shaurya Physio
-        </h1>
-        <p className="text-xs text-slate-500 mt-0.5 font-sans">Doctors Dashboard</p>
+    <>
+      {/* ── DESKTOP SIDEBAR ── */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-slate-900 flex-col flex-shrink-0">
+        <div className="px-6 py-6 border-b border-slate-800">
+          <h1 className="font-display text-lg font-semibold text-white leading-snug">Shaurya Physio</h1>
+          <p className="text-xs text-slate-500 mt-0.5 font-sans">Doctors Dashboard</p>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium transition-colors duration-150",
+                  active ? "bg-primary-700 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800"
+                )}
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-4 py-4 border-t border-slate-800">
+          {user && (
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {user.displayName?.charAt(0) || user.email?.charAt(0) || "D"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white truncate">{user.displayName || "Doctor"}</p>
+                <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full text-left text-xs text-slate-400 hover:text-red-400 transition-colors px-2 py-1.5 rounded-sm hover:bg-slate-800"
+          >
+            Sign out
+          </button>
+          <div className="mt-3">
+            <Link href="/" className="block text-xs text-slate-500 hover:text-primary-400 transition-colors">
+              View Public Site
+            </Link>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── MOBILE TOP BAR ── */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-base font-semibold text-white">Shaurya Physio</h1>
+          <p className="text-[10px] text-slate-500">Doctors Dashboard</p>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 text-slate-400 hover:text-white"
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      {/* ── MOBILE DROPDOWN MENU ── */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed top-[57px] left-0 right-0 z-50 bg-slate-900 border-b border-slate-800 shadow-xl">
+          <nav className="px-3 py-3 space-y-0.5">
+            {navItems.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-sm text-sm font-medium transition-colors",
+                    active ? "bg-primary-700 text-white" : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="px-4 py-3 border-t border-slate-800">
+            {user && (
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-7 h-7 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                  {user.displayName?.charAt(0) || user.email?.charAt(0) || "D"}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-white truncate">{user.displayName || "Doctor"}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex gap-4">
+              <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300">
+                Sign out
+              </button>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-xs text-slate-400 hover:text-primary-400">
+                View Public Site
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE BOTTOM NAV ── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-800 flex">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
+              onClick={() => setMobileMenuOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm font-medium transition-colors duration-150",
-                active
-                  ? "bg-primary-700 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                "flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors",
+                active ? "text-primary-400" : "text-slate-500 hover:text-slate-300"
               )}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
+              <Icon className={cn("w-5 h-5", active ? "text-primary-400" : "text-slate-500")} />
+              <span className="truncate w-full text-center px-0.5">{label}</span>
             </Link>
           );
         })}
       </nav>
-
-      <div className="px-4 py-4 border-t border-slate-800">
-        {user && (
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {user.displayName?.charAt(0) || user.email?.charAt(0) || "D"}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-white truncate">
-                {user.displayName || "Doctor"}
-              </p>
-              <p className="text-[10px] text-slate-500 truncate">{user.email}</p>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className="w-full text-left text-xs text-slate-400 hover:text-red-400 transition-colors px-2 py-1.5 rounded-sm hover:bg-slate-800"
-        >
-          Sign out
-        </button>
-        <div className="mt-3">
-          <Link href="/" className="block text-xs text-slate-500 hover:text-primary-400 transition-colors">
-            View Public Site
-          </Link>
-        </div>
-      </div>
-    </aside>
+    </>
   );
 }
 

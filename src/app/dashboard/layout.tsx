@@ -14,7 +14,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (!user) {
         router.push("/login");
       } else if (role !== "doctor") {
-        // Logged in but not a doctor — send back to main site
         router.push("/");
       }
     }
@@ -33,7 +32,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen bg-slate-100">
       <DashboardSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto
+        pt-[57px] pb-[64px] lg:pt-0 lg:pb-0">
         {children}
       </main>
     </div>

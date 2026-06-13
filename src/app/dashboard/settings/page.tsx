@@ -104,7 +104,7 @@ export default function SettingsPage() {
               onClick={handleApplyToAll}
               className="text-xs text-primary-600 hover:text-primary-800 px-3 py-1.5 border border-primary-200 rounded-sm hover:bg-primary-50 transition-colors whitespace-nowrap"
             >
-              Apply this day&apos;s timing to all days
+              Apply to all
             </button>
           </div>
 
